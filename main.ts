@@ -5,6 +5,10 @@ import { DEFAULT_SETTINGS, FinanceSettings, FinanceSettingTab } from './settings
 export default class FinanceManager extends Plugin {
 	settings: FinanceSettings;
 
+	executing: boolean = false;
+
+	report: string = '';
+
 	async onload() {
 		await this.loadSettings();
 
@@ -80,6 +84,16 @@ export default class FinanceManager extends Plugin {
 
 	async saveSettings() {
 		await this.saveData(this.settings);
+	}
+
+	openReport = async (): Promise<void> => {
+		this.executing = true;
+		this.report = this.getReportName();
+	
+	}
+
+	getReportName(): string {
+		return this.settings.reportName;
 	}
 }
 

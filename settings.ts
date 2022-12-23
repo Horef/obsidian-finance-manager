@@ -3,12 +3,14 @@ import FinanceManager from "./main";
 
 export interface FinanceSettings {
 	transactionsFolder: string,
-	mainNoteName: string
+	reportName: string,
+	autoCreate: boolean
 }
 
 export const DEFAULT_SETTINGS: FinanceSettings = {
 	transactionsFolder: 'FinanceTracker',
-	mainNoteName: 'FinanceManagerReport'
+	reportName: 'FinanceManagerReport',
+	autoCreate: true
 }
 
 export class FinanceSettingTab extends PluginSettingTab {
@@ -18,6 +20,7 @@ export class FinanceSettingTab extends PluginSettingTab {
 	constructor(app: App, plugin: FinanceManager) {
 		super(app, plugin);
 		this.plugin = plugin;
+		this.settings = plugin.settings;
 	}
 
 	display(): void {
@@ -27,20 +30,20 @@ export class FinanceSettingTab extends PluginSettingTab {
 
 		containerEl.createEl('h2', {text: 'Settings for finance manager.'});
 
-        let mainNoteSetting = new Setting(containerEl)
-            .setName('Main file')
+        new Setting(containerEl)
+            .setName('Report file')
             .setDesc('File where all of the statistics will be shown.')
             .addText(text => text
                 .setPlaceholder('Enter the name of the file')
-                .setValue(this.plugin.settings.mainNoteName)
+                .setValue(this.plugin.settings.reportName)
                 .onChange(async (value) => {
-                    console.log('Main note name: ' + value);
-                    this.plugin.settings.mainNoteName = value;
+                    console.log('Report note name: ' + value);
+                    this.plugin.settings.reportName = value;
                     await this.plugin.saveSettings();
                 }));
             
 
-		let transactionFolderSetting = new Setting(containerEl)
+		new Setting(containerEl)
 			.setName('Payment nodes folder')
 			.setDesc('File where all of the transactions will be stored.')
 			.addText(text => text
@@ -50,6 +53,17 @@ export class FinanceSettingTab extends PluginSettingTab {
 					console.log('Transactions folder: ' + value);
 					this.plugin.settings.transactionsFolder = value;
 					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('Auto create')
+			.setDesc('Automatically create the report file and the folder for transactions.')
+			.addToggle(toggle => toggle
+				.setValue(this.settings.autoCreate)
+				.onChange(async (value) => {
+					this.settings.autoCreate = value;
+					await this.plugin.saveSettings();
+					this.display();
 				}));
 	}
 }
