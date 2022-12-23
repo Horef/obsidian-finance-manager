@@ -1,5 +1,6 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
-import { DEFAULT_SETTINGS, FinanceSettings, FinanceSettingTab } from './settings';
+import { App, Editor, MarkdownView, Modal, Notice, Plugin, View, WorkspaceLeaf } from 'obsidian';
+import { DEFAULT_SETTINGS, Mode, FinanceSettings, FinanceSettingTab } from './settings';
+import { trimFile } from "./utils";
 // Remember to rename these classes and interfaces!
 
 export default class FinanceManager extends Plugin {
@@ -15,7 +16,7 @@ export default class FinanceManager extends Plugin {
 		// This creates an icon in the left ribbon.
 		const ribbonIconEl = this.addRibbonIcon('dice', 'Open Finance', (evt: MouseEvent) => {
 			// Called when the user clicks the icon.
-			new Notice('Hello there! It works!');
+			this.openReport();
 		});
 		// Perform additional things with the ribbon
 		ribbonIconEl.addClass('my-plugin-ribbon-class');
@@ -89,11 +90,71 @@ export default class FinanceManager extends Plugin {
 	openReport = async (): Promise<void> => {
 		this.executing = true;
 		this.report = this.getReportName();
+		let mode = Mode.Retain;
 	
+		if (!this.settings.autoCreate && await this.getReportNonexistancy()) {
+			new Notice(`Report ${this.report} does not exist.`);
+			this.executing = false;
+			return;
+		}
+		
+		//mode != Mode.ReplaceAll
+		if (true) {
+			const alreadyOpened = this.getOpenedReport();
+
+			if (alreadyOpened !== undefined) {
+				this.app.workspace.setActiveLeaf(alreadyOpened);
+				await this.configureReport();
+				return;
+			}
+		}
+
+		await this.openReportLink(mode as Mode);
+		
+		if (this.app.workspace.getActiveFile() == null) {
+			//hack to fix bug with opening link when homepage is already extant beforehand
+			await this.openReportLink(mode as Mode);
+		}
+
+		await this.configureReport();
+		
+	}
+
+	async openReportLink(mode: Mode): Promise<void> {
+		await this.app.workspace.openLinkText(
+			this.report, "", mode == Mode.Retain, {active: true}
+		);
+	}
+
+	async getReportNonexistancy(): Promise<boolean> {
+		return !(await this.app.vault.adapter.exists(`${this.report}.md`));
 	}
 
 	getReportName(): string {
 		return this.settings.reportName;
+	}
+
+	getOpenedReport(): WorkspaceLeaf | undefined {
+		let leaves = this.app.workspace.getLeavesOfType("markdown").concat(
+			this.app.workspace.getLeavesOfType("kanban")
+		);
+
+		return leaves.find(
+			leaf => trimFile((leaf.view as any).file) == this.report
+		);
+	}
+
+	async configureReport(): Promise<void> {
+		this.executing = false;
+
+		const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+		if (view === null) return;
+
+		const state = view.getState();
+
+		state.mode = "preview";
+
+		await view.leaf.setViewState({type: "markdown", state: state});
 	}
 }
 

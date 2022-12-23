@@ -1,6 +1,12 @@
 import { App, PluginSettingTab, Setting, TAbstractFile, TFile, normalizePath } from "obsidian";
 import FinanceManager from "./main";
 
+export enum Mode {
+	ReplaceAll = "Replace all open notes",
+	ReplaceLast = "Replace last note",
+	Retain = "Keep open notes"
+}
+
 export interface FinanceSettings {
 	transactionsFolder: string,
 	reportName: string,
@@ -17,9 +23,11 @@ export class FinanceSettingTab extends PluginSettingTab {
 	plugin: FinanceManager;
     settings: FinanceSettings;
 
+	//This construct the settings tab. Runs every time the settings are opened.
 	constructor(app: App, plugin: FinanceManager) {
 		super(app, plugin);
 		this.plugin = plugin;
+		//This saves the settings between runs.
 		this.settings = plugin.settings;
 	}
 
